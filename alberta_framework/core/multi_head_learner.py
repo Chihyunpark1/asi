@@ -68,6 +68,7 @@ MULTI_HEAD_LIFETIME_COUNTER_NBYTES = 12
 MULTI_HEAD_LIFETIME_COUNTER_DELTA_NBYTES = 8
 
 _INT32_MAX = 2**31 - 1
+_MAX_SCAN_STEPS = 10_000
 _FLOAT32_HALF_MIN_SUBNORMAL_DENOMINATOR = 1 << 150
 _CONFIG_FIELDS = frozenset(
     {
@@ -1635,8 +1636,10 @@ def run_multi_head_learning_loop(
     except (AttributeError, IndexError, TypeError, ValueError) as error:
         raise TypeError("targets must expose trusted shape metadata") from error
 
-    if not 1 <= num_steps <= _INT32_MAX:
-        raise ValueError("observations must contain between 1 and signed-int32 steps")
+    if not 1 <= num_steps <= _MAX_SCAN_STEPS:
+        raise ValueError(
+            f"observations must contain between 1 and {_MAX_SCAN_STEPS} scan steps"
+        )
     if not 1 <= feature_dim <= _INT32_MAX:
         raise ValueError("observations feature_dim must be positive and at most signed-int32")
     if targets_steps != num_steps:
@@ -1737,8 +1740,10 @@ def run_multi_head_learning_loop_batched(
     except (AttributeError, IndexError, TypeError, ValueError) as error:
         raise TypeError("targets must expose trusted shape metadata") from error
 
-    if not 1 <= num_steps <= _INT32_MAX:
-        raise ValueError("observations must contain between 1 and signed-int32 steps")
+    if not 1 <= num_steps <= _MAX_SCAN_STEPS:
+        raise ValueError(
+            f"observations must contain between 1 and {_MAX_SCAN_STEPS} scan steps"
+        )
     if not 1 <= feature_dim <= _INT32_MAX:
         raise ValueError("observations feature_dim must be positive and at most signed-int32")
     if targets_steps != num_steps:
