@@ -84,6 +84,7 @@ from alberta_framework.core.update_safety import (
 from alberta_framework.streams.base import ScanStream
 
 _INT32_MAX = 2**31 - 1
+_MAX_HIDDEN_SIZES = 1 << 12
 _MAX_RESOURCE_BYTES = 256 * 1024 * 1024
 # Documented public protocol: README / package ``__init__`` / loop docstrings
 # last-fit ``num_steps=10_000`` and batched ``30`` seeds. Not an INT32 cap.
@@ -157,6 +158,8 @@ def _require_learning_loop_seed_steps(num_steps: int, num_seeds: int) -> None:
 def _require_hidden_sizes(hidden_sizes: object) -> tuple[int, ...]:
     if type(hidden_sizes) is not tuple:
         raise ValueError("hidden_sizes must be an actual tuple")
+    if len(hidden_sizes) > _MAX_HIDDEN_SIZES:
+        raise ValueError(f"hidden_sizes length must be at most {_MAX_HIDDEN_SIZES}")
     return tuple(
         _require_int32(f"hidden_sizes[{index}]", width, minimum=1)
         for index, width in enumerate(hidden_sizes)
@@ -1326,6 +1329,10 @@ class MLPLearner:
             raise ValueError("unexpected MLPLearner config type")
         if type(config["hidden_sizes"]) is not list:
             raise ValueError("hidden_sizes must be a list")
+        if len(config["hidden_sizes"]) > _MAX_HIDDEN_SIZES:
+            raise ValueError(
+                f"serialized hidden_sizes must contain at most {_MAX_HIDDEN_SIZES} entries"
+            )
         config = config.copy()
         config.pop("type")
 
