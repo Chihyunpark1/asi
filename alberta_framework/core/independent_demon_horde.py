@@ -76,6 +76,7 @@ from alberta_framework.core.update_safety import (
 
 
 _INT32_MAX = 2**31 - 1
+_MAX_HIDDEN_SIZES = 1 << 12
 _ACTUAL_INT_TYPES = frozenset(
     {int, *(np.dtype(code).type for code in "bBhHiIlLqQpP")}
 )
@@ -385,6 +386,8 @@ class IndependentDemonHorde:
             raise ValueError("horde_spec must be a nonempty HordeSpec")
         if type(hidden_sizes) is not tuple:
             raise ValueError("hidden_sizes must be an exact tuple")
+        if len(hidden_sizes) > _MAX_HIDDEN_SIZES:
+            raise ValueError(f"hidden_sizes length must be at most {_MAX_HIDDEN_SIZES}")
         hidden_sizes = tuple(
             _require_int32(f"hidden_sizes[{i}]", v, minimum=1) for i, v in enumerate(hidden_sizes)
         )
@@ -479,6 +482,13 @@ class IndependentDemonHorde:
 
         config = _read_mapping("config", config)
         config.pop("type", None)
+        hidden_sizes = config.get("hidden_sizes")
+        if type(hidden_sizes) not in (list, tuple):
+            raise ValueError("serialized hidden_sizes must be a list or tuple")
+        if len(hidden_sizes) > _MAX_HIDDEN_SIZES:
+            raise ValueError(
+                f"serialized hidden_sizes must contain at most {_MAX_HIDDEN_SIZES} entries"
+            )
 
         horde_spec = HordeSpec.from_config(config.pop("horde_spec"))
         optimizer = optimizer_from_config(config.pop("optimizer"))
