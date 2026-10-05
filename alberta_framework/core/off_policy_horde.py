@@ -47,6 +47,7 @@ from alberta_framework.core.update_safety import (
 )
 
 _INT32_MAX = 2**31 - 1
+_MAX_SERIALIZED_HIDDEN_SIZES = 1 << 12
 # Matches the documented learning-loop step ceiling established for
 # scan-driven array loops elsewhere in the codebase (see
 # ``horde._HORDE_SEQUENCE_MAX_STEPS``, ``learners._LEARNING_LOOP_MAX_STEPS``,
@@ -393,6 +394,12 @@ class OffPolicyHordeLearner:
             trace_ratio_clip: Clip for the eligibility-trace ratio.
             min_behavior_probability: Denominator floor for probability API.
         """
+        if type(hidden_sizes) is not tuple:
+            raise ValueError("hidden_sizes must be an actual tuple")
+        if len(hidden_sizes) > _MAX_SERIALIZED_HIDDEN_SIZES:
+            raise ValueError(
+                f"hidden_sizes length must be at most {_MAX_SERIALIZED_HIDDEN_SIZES}"
+            )
         ratio_clip = _require_positive_clip("ratio_clip", ratio_clip)
         trace_ratio_clip = _require_positive_clip("trace_ratio_clip", trace_ratio_clip)
         min_behavior_probability = _require_float32(
@@ -1014,6 +1021,14 @@ class OffPolicyHordeLearner:
 
         config = dict(config)
         config.pop("type", None)
+        hidden_sizes = config.get("hidden_sizes")
+        if type(hidden_sizes) not in (list, tuple):
+            raise ValueError("serialized hidden_sizes must be a list or tuple")
+        if len(hidden_sizes) > _MAX_SERIALIZED_HIDDEN_SIZES:
+            raise ValueError(
+                "serialized hidden_sizes must contain at most "
+                f"{_MAX_SERIALIZED_HIDDEN_SIZES} entries"
+            )
         horde_spec = HordeSpec.from_config(config.pop("horde_spec"))
         optimizer = optimizer_from_config(config.pop("optimizer"))
         bounder_cfg = config.pop("bounder", None)
