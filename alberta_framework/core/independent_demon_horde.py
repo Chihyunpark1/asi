@@ -76,6 +76,7 @@ from alberta_framework.core.update_safety import (
 
 
 _INT32_MAX = 2**31 - 1
+_MAX_SCAN_STEPS = 10_000
 _ACTUAL_INT_TYPES = frozenset(
     {int, *(np.dtype(code).type for code in "bBhHiIlLqQpP")}
 )
@@ -201,8 +202,12 @@ def _require_learning_arrays(
     if len(obs_shape) != 2 or obs_shape[0] < 1 or obs_shape[1] < 1:
         raise ValueError("observations must have shape (num_steps, feature_dim)")
     num_steps, feature_dim = obs_shape
-    if not 1 <= num_steps <= _INT32_MAX or not 1 <= feature_dim <= _INT32_MAX:
-        raise ValueError("observations must contain between 1 and signed-int32 dimensions")
+    if not 1 <= num_steps <= _MAX_SCAN_STEPS:
+        raise ValueError(
+            f"observations must contain between 1 and {_MAX_SCAN_STEPS} scan steps"
+        )
+    if not 1 <= feature_dim <= _INT32_MAX:
+        raise ValueError("observations feature_dim must be positive and at most signed-int32")
 
     obs = _trusted_array("observations", observations, shape=obs_shape, dtype=jnp.float32)
     next_obs = _trusted_array(
