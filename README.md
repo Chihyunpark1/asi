@@ -196,6 +196,14 @@ environment for every command:
 .venv/bin/python -m pip install -e '.[dev]'
 ```
 
+## Windows (PowerShell)
+
+On Windows PowerShell, create the virtual environment with `py -3.12 -m venv .venv`. In the install commands above, replace `.venv/bin/python` with `.\.venv\Scripts\python.exe`. For example, to install the development dependencies:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e '.[dev]'
+```
+
 ## Quick start
 
 This small example runs one online-learning primitive on a drifting synthetic stream. It is
