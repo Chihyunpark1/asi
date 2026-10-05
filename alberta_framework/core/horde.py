@@ -47,6 +47,8 @@ from alberta_framework.core.normalizers import (
 from alberta_framework.core.optimizers import Bounder
 from alberta_framework.core.types import HordeSpec, TraceMode
 
+_MAX_SERIALIZED_HIDDEN_SIZES = 1 << 12
+
 _ACTUAL_INT_TYPES = frozenset({int, *(np.dtype(code).type for code in "bBhHiIlLqQpP")})
 _ACTUAL_REAL_TYPES = _ACTUAL_INT_TYPES | frozenset(
     {float, *(np.dtype(code).type for code in "efdg")}
@@ -58,6 +60,16 @@ _ACTUAL_REAL_TYPES = _ACTUAL_INT_TYPES | frozenset(
 # ``cumulants``, and ``next_observations`` straight to ``jax.lax.scan`` with
 # no other cap on the scanned sequence length.
 _HORDE_SEQUENCE_MAX_STEPS = 10_000
+
+
+def _preflight_serialized_hidden_sizes(value: object) -> None:
+    if type(value) not in (list, tuple):
+        raise ValueError("serialized hidden_sizes must be a list or tuple")
+    if len(value) > _MAX_SERIALIZED_HIDDEN_SIZES:
+        raise ValueError(
+            "serialized hidden_sizes must contain at most "
+            f"{_MAX_SERIALIZED_HIDDEN_SIZES} entries"
+        )
 
 
 def _require_float32(
@@ -302,6 +314,12 @@ class HordeLearner:
             trace_mode: Eligibility trace mode (ACCUMULATING or REPLACING)
             utility_decay: EMA decay for hidden-unit utility diagnostics.
         """
+        if type(hidden_sizes) is not tuple:
+            raise ValueError("hidden_sizes must be an actual tuple")
+        if len(hidden_sizes) > _MAX_SERIALIZED_HIDDEN_SIZES:
+            raise ValueError(
+                f"hidden_sizes length must be at most {_MAX_SERIALIZED_HIDDEN_SIZES}"
+            )
         step_size, sparsity, leaky_relu_slope, use_layer_norm = _canonical_horde_host_scalars(
             step_size, sparsity, leaky_relu_slope, use_layer_norm
         )
@@ -396,6 +414,7 @@ class HordeLearner:
 
         config = dict(config)
         config.pop("type", None)
+        _preflight_serialized_hidden_sizes(config.get("hidden_sizes"))
         state_schema = config.pop("state_schema", MULTI_HEAD_MLP_STATE_SCHEMA)
         host_state_schema = _require_exact_str("state_schema", state_schema)
         if host_state_schema != MULTI_HEAD_MLP_STATE_SCHEMA:
@@ -667,6 +686,12 @@ class MixedHorde:
             IndependentDemonHorde,
         )
 
+        if type(hidden_sizes) is not tuple:
+            raise ValueError("hidden_sizes must be an actual tuple")
+        if len(hidden_sizes) > _MAX_SERIALIZED_HIDDEN_SIZES:
+            raise ValueError(
+                f"hidden_sizes length must be at most {_MAX_SERIALIZED_HIDDEN_SIZES}"
+            )
         step_size, sparsity, leaky_relu_slope, use_layer_norm = _canonical_horde_host_scalars(
             step_size, sparsity, leaky_relu_slope, use_layer_norm
         )
@@ -793,6 +818,7 @@ class MixedHorde:
 
         config = dict(config)
         config.pop("type", None)
+        _preflight_serialized_hidden_sizes(config.get("hidden_sizes"))
         horde_spec = HordeSpec.from_config(config.pop("horde_spec"))
         opt_cfg = config.pop("optimizer", None)
         optimizer = optimizer_from_config(opt_cfg) if opt_cfg is not None else None
